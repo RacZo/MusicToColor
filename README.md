@@ -2,13 +2,17 @@
 
 Demonstrates how to get colors from music using the Visualizer class.
 
-# Music Attributions
+
+# Music Attribution
 
 Song: Dragon Ball Z Metal
+
 Link: http://charlieparradelriego.com/downloads/CharlieParradelRiego_Dragon_Ball_Z.mp3
 
 Author: Charlie Parra del Riego
+
 Website: http://charlieparradelriego.com/
+
 Youtube Video: https://www.youtube.com/watch?v=uUrupnkFFuo
 
 
