@@ -281,11 +281,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (mMediaPlayer != null) {
+            if(!mMediaPlayer.isPlaying()) {
+                mMediaPlayer.start();
+            }
+        }
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
+        if (mMediaPlayer != null) {
+            if(mMediaPlayer.isPlaying()){
+                mMediaPlayer.pause();
+            }
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
         if (isFinishing() && mMediaPlayer != null) {
             mVisualizer.release();
             mEqualizer.release();
+            if(mMediaPlayer.isPlaying()){
+                mMediaPlayer.stop();
+            }
             mMediaPlayer.release();
             mMediaPlayer = null;
         }
