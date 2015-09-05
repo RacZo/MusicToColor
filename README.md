@@ -3,6 +3,9 @@
 Demonstrates how to get colors from music using the Visualizer class.
 
 
+![](color-extractor.png)
+
+
 # Music Attribution
 
 Song: Dragon Ball Z Metal
