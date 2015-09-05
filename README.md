@@ -3,7 +3,7 @@
 Demonstrates how to get colors from music using the Visualizer class.
 
 
-![](color-extractor.png)
+![](music-to-color.png)
 
 
 # Music Attribution
