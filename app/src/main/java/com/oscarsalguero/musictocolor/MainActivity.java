@@ -1,5 +1,5 @@
 /***
- * Copyright (c) 2015 Oscar Salguero www.oscarsalguero.com
+ * Copyright (c) 2017 Oscar Salguero www.oscarsalguero.com
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may obtain
  * a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -12,7 +12,9 @@
 package com.oscarsalguero.musictocolor;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.AssetFileDescriptor;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -30,7 +32,8 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import java.io.IOException;
+import com.oscarsalguero.musictocolor.view.VisualizerView;
+
 import java.util.Random;
 
 /**
@@ -39,35 +42,41 @@ import java.util.Random;
  */
 public class MainActivity extends AppCompatActivity {
 
+    private static final String LOG_TAG = MainActivity.class.getName();
+
     private MediaPlayer mMediaPlayer;
     private Equalizer mEqualizer;
     private Visualizer mVisualizer;
-    private LinearLayout mLinearLayout;
+    private LinearLayout mWaveformLayout;
+    private LinearLayout mEqualizerLayout;
     private VisualizerView mVisualizerView;
     private TextView mColorTextView;
 
     private static final String INITIAL_COLOR = "#ff000000";
     private static final String SPACE = " ";
+    private static final float VISUALIZER_HEIGHT_DIP = 56;
 
-    private static final float VISUALIZER_HEIGHT_DIP = 50f;
+    /**
+     * Id to identify a mic permission request.
+     */
+    private static final int REQUEST_MIC = 0;
 
-    private static final String LOG_TAG = MainActivity.class.getName();
+    /**
+     * Id to identify a storage permission request.
+     */
+    private static final int REQUEST_STORAGE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mWaveformLayout = (LinearLayout) findViewById(R.id.layout_waveform);
+        mEqualizerLayout = (LinearLayout) findViewById(R.id.layout_equalizer);
+        mColorTextView = (TextView) findViewById(R.id.text_view_color_hex);
+
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
-
-        TextView mStatusTextView = new TextView(this);
-        mLinearLayout = new LinearLayout(this);
-        mLinearLayout.setOrientation(LinearLayout.VERTICAL);
-        mLinearLayout.addView(mStatusTextView);
-
-        setContentView(mLinearLayout);
-
-        // Create the MediaPlayer
+        // Creating the MediaPlayer
         AssetFileDescriptor assetFileDescriptor = null;
         try {
             assetFileDescriptor = getAssets().openFd("dbz.mp3");
@@ -80,25 +89,20 @@ public class MainActivity extends AppCompatActivity {
             mMediaPlayer.prepare();
             mMediaPlayer.start();
 
-        } catch (IllegalArgumentException e) {
-            Log.e(LOG_TAG, e.getMessage());
-        } catch (IllegalStateException e) {
-            Log.e(LOG_TAG, e.getMessage());
-        } catch (IOException e) {
-            Log.e(LOG_TAG, e.getMessage());
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "An error has ocurred whil setting up MediaPlayer", e);
         }
 
         Log.d(LOG_TAG, "MediaPlayer audio session ID: " + mMediaPlayer.getAudioSessionId());
 
-        setupVisualizerFxAndUI();
-        setupEqualizerFxAndUI();
+        setupUI();
 
         // Make sure the visualizer is enabled only when you actually want to receive data, and
         // when it makes sense to receive data.
         mVisualizer.setEnabled(true);
 
         // When the stream ends, we don't need to collect any more data. We don't do this in
-        // setupVisualizerFxAndUI because we likely want to have more, non-Visualizer related code
+        // setupVisualizer because we likely want to have more, non-Visualizer related code
         // in this callback.
         mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             public void onCompletion(MediaPlayer mediaPlayer) {
@@ -107,22 +111,16 @@ public class MainActivity extends AppCompatActivity {
         });
 
         mMediaPlayer.start();
-        mStatusTextView.setText(getString(R.string.label_waveform));
-
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         switch (id) {
             case R.id.action_about:
@@ -135,34 +133,122 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void setupEqualizerFxAndUI() {
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mMediaPlayer != null) {
+            if (!mMediaPlayer.isPlaying()) {
+                mMediaPlayer.start();
+            }
+        }
+    }
 
-        // TextView to show colors
-        mColorTextView = new TextView(this);
-        mColorTextView.setLayoutParams(new ViewGroup.LayoutParams(
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mMediaPlayer != null) {
+            if (mMediaPlayer.isPlaying()) {
+                mMediaPlayer.pause();
+            }
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (isFinishing() && mMediaPlayer != null) {
+            mVisualizer.release();
+            mEqualizer.release();
+            if (mMediaPlayer.isPlaying()) {
+                mMediaPlayer.stop();
+            }
+            mMediaPlayer.release();
+            mMediaPlayer = null;
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        Configuration config = getResources().getConfiguration();
+        if (config.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            setContentView(R.layout.activity_main);
+        } else if (config.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            setContentView(R.layout.activity_main);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_STORAGE: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+
+                } else {
+
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                }
+                return;
+            }
+            case REQUEST_MIC: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+
+                } else {
+
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                }
+                return;
+            }
+        }
+    }
+
+    /**
+     * Sets up the visualizer and creates the equalizer controls
+     */
+    private void setupUI() {
+
+        // Create a VisualizerView (defined below), which will render the simplified audio wave form to a Canvas.
+        mVisualizerView = new VisualizerView(this);
+        mVisualizerView.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 (int) (VISUALIZER_HEIGHT_DIP * getResources().getDisplayMetrics().density)));
-        mColorTextView.setBackgroundColor(Color.BLACK);
-        mColorTextView.setTextColor(Color.WHITE);
-        mColorTextView.setTextSize(24);
-        mColorTextView.setGravity(Gravity.CENTER);
+        mWaveformLayout.addView(mVisualizerView);
 
-        mLinearLayout.addView(mColorTextView);
+        // Create the Visualizer object and attach it to our media player.
+        mVisualizer = new Visualizer(mMediaPlayer.getAudioSessionId());
+        mVisualizer.setCaptureSize(Visualizer.getCaptureSizeRange()[1]);
+        mVisualizer.setDataCaptureListener(new Visualizer.OnDataCaptureListener() {
+
+            public void onWaveFormDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
+                int color = updateColor(mVisualizerView.getWaveFormHeight());
+                mVisualizerView.updateVisualizer(bytes, color);
+            }
+
+            public void onFftDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
+            }
+
+        }, Visualizer.getMaxCaptureRate() / 2, true, false);
 
         // Create the Equalizer object (an AudioEffect subclass) and attach it to our media player,
         // with a default priority (0).
         mEqualizer = new Equalizer(0, mMediaPlayer.getAudioSessionId());
         mEqualizer.setEnabled(true);
-
-        TextView eqTextView = new TextView(this);
-        eqTextView.setText(getString(R.string.label_equalizer));
-        mLinearLayout.addView(eqTextView);
-
+        // Getting equalizer bands
         short bands = mEqualizer.getNumberOfBands();
-
+        // Getting ranges
         final short minEQLevel = mEqualizer.getBandLevelRange()[0];
         final short maxEQLevel = mEqualizer.getBandLevelRange()[1];
-
+        // Creating layouts with text views and seek bars for each band
         for (short i = 0; i < bands; i++) {
 
             final short band = i;
@@ -174,10 +260,10 @@ public class MainActivity extends AppCompatActivity {
             freqTextView.setGravity(Gravity.CENTER_HORIZONTAL);
 
             freqTextView.setText((mEqualizer.getCenterFreq(band) / 1000) + SPACE + getString(R.string.label_hz));
-            mLinearLayout.addView(freqTextView);
+            mEqualizerLayout.addView(freqTextView);
 
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout bandLayout = new LinearLayout(this);
+            bandLayout.setOrientation(LinearLayout.HORIZONTAL);
 
             TextView minDbTextView = new TextView(this);
             minDbTextView.setLayoutParams(new ViewGroup.LayoutParams(
@@ -196,12 +282,11 @@ public class MainActivity extends AppCompatActivity {
                     ViewGroup.LayoutParams.WRAP_CONTENT);
             layoutParams.weight = 1;
 
-            SeekBar bar = new SeekBar(this);
-            bar.setLayoutParams(layoutParams);
-            bar.setMax(maxEQLevel - minEQLevel);
-            bar.setProgress(mEqualizer.getBandLevel(band));
-
-            bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            SeekBar seekBar = new SeekBar(this);
+            seekBar.setLayoutParams(layoutParams);
+            seekBar.setMax(maxEQLevel - minEQLevel);
+            seekBar.setProgress(mEqualizer.getBandLevel(band));
+            seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 public void onProgressChanged(SeekBar seekBar, int progress,
                                               boolean fromUser) {
                     mEqualizer.setBandLevel(band, (short) (progress + minEQLevel));
@@ -215,41 +300,22 @@ public class MainActivity extends AppCompatActivity {
 
             });
 
-            row.addView(minDbTextView);
-            row.addView(bar);
-            row.addView(maxDbTextView);
+            bandLayout.addView(minDbTextView);
+            bandLayout.addView(seekBar);
+            bandLayout.addView(maxDbTextView);
 
-            mLinearLayout.addView(row);
+            mEqualizerLayout.addView(bandLayout);
         }
 
     }
 
-    private void setupVisualizerFxAndUI() {
-        // Create a VisualizerView (defined below), which will render the simplified audio wave form to a Canvas.
-        mVisualizerView = new VisualizerView(this);
-        mVisualizerView.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                (int) (VISUALIZER_HEIGHT_DIP * getResources().getDisplayMetrics().density)));
-        mLinearLayout.addView(mVisualizerView);
-
-        // Create the Visualizer object and attach it to our media player.
-        mVisualizer = new Visualizer(mMediaPlayer.getAudioSessionId());
-
-        mVisualizer.setCaptureSize(Visualizer.getCaptureSizeRange()[1]);
-        mVisualizer.setDataCaptureListener(new Visualizer.OnDataCaptureListener() {
-
-            public void onWaveFormDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
-                int color = updateColor(mVisualizerView.getWaveFormHeight());
-                mVisualizerView.updateVisualizer(bytes, color);
-            }
-
-            public void onFftDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
-            }
-
-        }, Visualizer.getMaxCaptureRate() / 2, true, false);
-    }
-
-    private int updateColor(float waveFormHeight){
+    /**
+     * Updates the color
+     *
+     * @param colorParam
+     * @return
+     */
+    private int updateColor(float colorParam) {
 
         int min = 1;
         int max = 3;
@@ -258,8 +324,8 @@ public class MainActivity extends AppCompatActivity {
 
         Random rnd = new Random();
         int alpha = 255;
-        int n = Math.round(waveFormHeight) * multiplier;
-        if(n > 256){
+        int n = Math.round(colorParam) * multiplier;
+        if (n > 256) {
             n = 256;
         }
         //Log.d(LOG_TAG, "n: " + n);
@@ -269,7 +335,7 @@ public class MainActivity extends AppCompatActivity {
         mColorTextView.setText(getString(R.string.label_hex) + SPACE + hexColorString);
         try {
             // Using the sampling rate as the to generate a HEX string and then an integer value for color
-            if(color != Color.WHITE) { // Avoiding white color so the hex value on the TextView is always visible
+            if (color != Color.WHITE) { // Avoiding white color so the hex value on the TextView is always visible
                 mColorTextView.setBackgroundColor(color);
                 mColorTextView.setText(getString(R.string.label_hex) + SPACE + Integer.toHexString(color));
             }
@@ -278,39 +344,5 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return color;
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (mMediaPlayer != null) {
-            if(!mMediaPlayer.isPlaying()) {
-                mMediaPlayer.start();
-            }
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (mMediaPlayer != null) {
-            if(mMediaPlayer.isPlaying()){
-                mMediaPlayer.pause();
-            }
-        }
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        if (isFinishing() && mMediaPlayer != null) {
-            mVisualizer.release();
-            mEqualizer.release();
-            if(mMediaPlayer.isPlaying()){
-                mMediaPlayer.stop();
-            }
-            mMediaPlayer.release();
-            mMediaPlayer = null;
-        }
     }
 }

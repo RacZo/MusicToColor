@@ -1,5 +1,5 @@
 /***
- * Copyright (c) 2015 Oscar Salguero www.oscarsalguero.com
+ * Copyright (c) 2017 Oscar Salguero www.oscarsalguero.com
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may obtain
  * a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -9,14 +9,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.oscarsalguero.musictocolor;
+package com.oscarsalguero.musictocolor.view;
 
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.util.Log;
 import android.view.View;
 
 /**
@@ -24,9 +23,7 @@ import android.view.View;
  * {@link Visualizer.OnDataCaptureListener#onWaveFormDataCapture }
  * Created by RacZo on 9/2/15.
  */
-class VisualizerView extends View {
-
-    private static final String LOG_TAG = VisualizerView.class.getName();
+public class VisualizerView extends View {
 
     private byte[] mBytes;
     private float[] mPoints;
@@ -43,7 +40,7 @@ class VisualizerView extends View {
     private void init() {
         mBytes = null;
 
-        mForePaint.setStrokeWidth(2f);
+        mForePaint.setStrokeWidth(4f);
         mForePaint.setAntiAlias(true);
         mForePaint.setColor(Color.rgb(0, 0, 0));
     }

@@ -1,11 +1,91 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:paddingBottom="@dimen/activity_vertical_margin"
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
+    android:scrollbars="none"
     tools:context=".MainActivity">
 
-</RelativeLayout>
+    <LinearLayout
+        android:id="@+id/layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/layout_waveform"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/text_view_waveform"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/view_vertical_margin"
+                android:layout_marginTop="@dimen/view_vertical_margin"
+                android:text="@string/label_waveform"
+                android:textSize="@dimen/text_size"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+
+        <TextView
+            android:id="@+id/text_view_equalizer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/view_vertical_margin"
+            android:layout_marginTop="@dimen/view_vertical_margin"
+            android:text="@string/label_equalizer"
+            android:textSize="@dimen/text_size"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/layout_equalizer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/view_vertical_margin"
+            android:layout_marginTop="@dimen/view_vertical_margin"
+            android:orientation="vertical" />
+
+        <TextView
+            android:id="@+id/text_view_equalizer_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/view_vertical_margin"
+            android:layout_marginTop="@dimen/view_vertical_margin"
+            android:gravity="center"
+            android:text="@string/hint_equalizer"
+            android:textSize="@dimen/hint_text_size" />
+
+        <TextView
+            android:id="@+id/text_view_color"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/view_vertical_margin"
+            android:layout_marginTop="@dimen/view_vertical_margin"
+            android:text="@string/label_color"
+            android:textSize="@dimen/text_size"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/text_view_color_hex"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/label_color_text_height"
+            android:layout_marginBottom="@dimen/view_vertical_margin"
+            android:layout_marginTop="@dimen/view_vertical_margin"
+            android:gravity="center"
+            android:text="@string/label_hex"
+            android:textAllCaps="true"
+            android:textColor="@color/white"
+            android:textSize="@dimen/label_color_text_size"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</ScrollView>
