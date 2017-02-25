@@ -15,7 +15,6 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetFileDescriptor;
-import android.content.res.Configuration;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -152,17 +151,6 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        Configuration config = getResources().getConfiguration();
-        if (config.orientation == Configuration.ORIENTATION_PORTRAIT) {
-            setContentView(R.layout.activity_main);
-        } else if (config.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            setContentView(R.layout.activity_main);
-        }
     }
 
     @Override
