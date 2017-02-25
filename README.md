@@ -2,7 +2,7 @@
 
 Demonstrates how to get colors from music using the Visualizer class.
 
-<img src="https://github.com/RacZo/ColorExtractor/blob/master/media/music-to-color.gif" width=270>
+<img src="media/music-to-color.gif.png" width=270>
 
 [![Get it on Google Play](media/google-play-badge.png)](https://play.google.com/store/apps/details?id=com.oscarsalguero.musictocolor)
 
