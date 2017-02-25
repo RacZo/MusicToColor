@@ -11,6 +11,7 @@
  */
 package com.oscarsalguero.musictocolor;
 
+import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetFileDescriptor;
@@ -52,7 +53,6 @@ public class MainActivity extends AppCompatActivity {
     private VisualizerView mVisualizerView;
     private TextView mColorTextView;
 
-    private static final String INITIAL_COLOR = "#ff000000";
     private static final String SPACE = " ";
     private static final float VISUALIZER_HEIGHT_DIP = 56;
 
@@ -66,71 +66,37 @@ public class MainActivity extends AppCompatActivity {
      */
     private static final int REQUEST_STORAGE = 1;
 
+    /**
+     * Permissions required to read/write external storage.
+     */
+    private static String[] PERMISSIONS_STORAGE = {Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE};
+
+    /**
+     * Permissions required to play audio.
+     */
+    private static String[] PERMISSIONS_AUDIO = {Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.MODIFY_AUDIO_SETTINGS};
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         mWaveformLayout = (LinearLayout) findViewById(R.id.layout_waveform);
+
         mEqualizerLayout = (LinearLayout) findViewById(R.id.layout_equalizer);
+
         mColorTextView = (TextView) findViewById(R.id.text_view_color_hex);
+        mColorTextView.setBackgroundColor(Color.BLACK);
+        mColorTextView.setText(getString(R.string.label_hex) + SPACE + "n/a");
 
-        setVolumeControlStream(AudioManager.STREAM_MUSIC);
-        // Creating the MediaPlayer
-        AssetFileDescriptor assetFileDescriptor = null;
-        try {
-            assetFileDescriptor = getAssets().openFd("dbz.mp3");
-
-            mMediaPlayer = new MediaPlayer();
-            mMediaPlayer.setDataSource(
-                    assetFileDescriptor.getFileDescriptor(),
-                    assetFileDescriptor.getStartOffset(),
-                    assetFileDescriptor.getLength());
-            mMediaPlayer.prepare();
-            mMediaPlayer.start();
-
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "An error has ocurred whil setting up MediaPlayer", e);
-        }
-
-        Log.d(LOG_TAG, "MediaPlayer audio session ID: " + mMediaPlayer.getAudioSessionId());
+        // Creating the MediaPlayer object
+        mMediaPlayer = new MediaPlayer();
 
         setupUI();
 
-        // Make sure the visualizer is enabled only when you actually want to receive data, and
-        // when it makes sense to receive data.
-        mVisualizer.setEnabled(true);
-
-        // When the stream ends, we don't need to collect any more data. We don't do this in
-        // setupVisualizer because we likely want to have more, non-Visualizer related code
-        // in this callback.
-        mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            public void onCompletion(MediaPlayer mediaPlayer) {
-                mVisualizer.setEnabled(false);
-            }
-        });
-
-        mMediaPlayer.start();
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        switch (id) {
-            case R.id.action_about:
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.git_hub_repo_url)));
-                startActivity(intent);
-                break;
-            default:
-                break;
-        }
-        return super.onOptionsItemSelected(item);
+        initializeMediaPlayer();
     }
 
     @Override
@@ -165,6 +131,26 @@ public class MainActivity extends AppCompatActivity {
             mMediaPlayer.release();
             mMediaPlayer = null;
         }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        switch (id) {
+            case R.id.action_about:
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.git_hub_repo_url)));
+                startActivity(intent);
+                break;
+            default:
+                break;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -231,7 +217,11 @@ public class MainActivity extends AppCompatActivity {
 
             public void onWaveFormDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
                 int color = updateColor(mVisualizerView.getWaveFormHeight());
-                mVisualizerView.updateVisualizer(bytes, color);
+                // Avoiding white color so we don't change the visualizer and text view to white
+                if (color != Color.WHITE) {
+                    mVisualizerView.updateVisualizer(bytes, color);
+                    updateTextViewColor(color);
+                }
             }
 
             public void onFftDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
@@ -310,12 +300,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Updates the color
+     * Updates the color on the text view based on the waveform's height
      *
-     * @param colorParam
-     * @return
+     * @param waveFormHeight the waveform's height given by the Visualizer class
+     * @return an integer value with the color that was generated
      */
-    private int updateColor(float colorParam) {
+    private int updateColor(float waveFormHeight) {
 
         int min = 1;
         int max = 3;
@@ -324,25 +314,63 @@ public class MainActivity extends AppCompatActivity {
 
         Random rnd = new Random();
         int alpha = 255;
-        int n = Math.round(colorParam) * multiplier;
+        int n = Math.round(waveFormHeight) * multiplier;
         if (n > 256) {
             n = 256;
         }
-        //Log.d(LOG_TAG, "n: " + n);
+        // Using the sampling rate as the to generate a HEX string and then an integer value for color
         int color = Color.argb(alpha, rnd.nextInt(n), rnd.nextInt(n), rnd.nextInt(n));
+        return color;
+    }
 
-        String hexColorString = INITIAL_COLOR;
-        mColorTextView.setText(getString(R.string.label_hex) + SPACE + hexColorString);
+    /**
+     * Initializes the media player
+     */
+    private void initializeMediaPlayer() {
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+        AssetFileDescriptor assetFileDescriptor = null;
         try {
-            // Using the sampling rate as the to generate a HEX string and then an integer value for color
-            if (color != Color.WHITE) { // Avoiding white color so the hex value on the TextView is always visible
-                mColorTextView.setBackgroundColor(color);
-                mColorTextView.setText(getString(R.string.label_hex) + SPACE + Integer.toHexString(color));
-            }
-        } catch (IllegalArgumentException e) {
-            Log.e(LOG_TAG, e.getMessage());
+            assetFileDescriptor = getAssets().openFd("dbz.mp3");
+
+            mMediaPlayer.setDataSource(
+                    assetFileDescriptor.getFileDescriptor(),
+                    assetFileDescriptor.getStartOffset(),
+                    assetFileDescriptor.getLength());
+            mMediaPlayer.prepare();
+            mMediaPlayer.start();
+
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "An error has occurred while setting up MediaPlayer", e);
         }
 
-        return color;
+        Log.d(LOG_TAG, "MediaPlayer audio session ID: " + mMediaPlayer.getAudioSessionId());
+
+        // Make sure the visualizer is enabled only when you actually want to receive data, and
+        // when it makes sense to receive data.
+        mVisualizer.setEnabled(true);
+
+        // When the stream ends, we don't need to collect any more data. We don't do this in
+        // setupVisualizer because we likely want to have more, non-Visualizer related code
+        // in this callback.
+        mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            public void onCompletion(MediaPlayer mediaPlayer) {
+                mVisualizer.setEnabled(false);
+            }
+        });
+        mMediaPlayer.start();
+    }
+
+    /**
+     * Updates the background color of the text view and its text with the HEX value for the color
+     *
+     * @param color an integer with the color we want to set as the text view's background
+     */
+    private void updateTextViewColor(int color) {
+        try {
+            mColorTextView.setBackgroundColor(color);
+            mColorTextView.setText(getString(R.string.label_hex) + SPACE + Integer.toHexString(color));
+        } catch (IllegalArgumentException e) {
+            Log.e(LOG_TAG, "An error has occurred while updating the color", e);
+        }
     }
 }
