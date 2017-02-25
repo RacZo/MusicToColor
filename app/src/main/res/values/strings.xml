@@ -8,6 +8,8 @@
     <string name="label_hz">Hz</string>
     <string name="label_db">dB</string>
 
+    <string name="label_music_attribution">Now Playing:\nCharlie Parra del Riego - Dragon Ball Z Metal</string>
+
     <string name="hint_equalizer">Adjust the bands to see how the color changes.</string>
 
     <string name="action_about">About</string>

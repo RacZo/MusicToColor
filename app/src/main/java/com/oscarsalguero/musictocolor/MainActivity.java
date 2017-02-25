@@ -32,6 +32,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.oscarsalguero.musictocolor.view.VisualizerView;
 
@@ -358,6 +359,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         mMediaPlayer.start();
+        Toast.makeText(this, getString(R.string.label_music_attribution), Toast.LENGTH_LONG).show();
     }
 
     /**
