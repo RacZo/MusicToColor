@@ -78,6 +78,8 @@ public class MainActivity extends AppCompatActivity {
     private static String[] PERMISSIONS_AUDIO = {Manifest.permission.RECORD_AUDIO,
             Manifest.permission.MODIFY_AUDIO_SETTINGS};
 
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -363,4 +365,5 @@ public class MainActivity extends AppCompatActivity {
             Log.e(LOG_TAG, "An error has occurred while updating the color", e);
         }
     }
+
 }
